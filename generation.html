@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>BSPLevelGeneration</title>
+    <style>
+      body { margin: 10px }
+
+      input[type=submit]:not(:disabled) {
+        cursor: pointer;
+      }
+
+      #canvas {
+        image-rendering: pixelated;
+        transform: translateZ(0);
+      }
+    </style>
+  </head>
+  <body>
+      <h1>BSPLevelGeneration</h1>
+      <p>
+        Method to create map terrain, <span style="color:#00f">level entrance</span>, <span style="color:#f00">exit</span>, <span style="color:#f0f">monsters</span> and <span style="color:#fa0">treasures</span> using BSP tree
+      </p>
+      <p>
+        <a href="http://www.roguebasin.com/index.php?title=Basic_BSP_Dungeon_generation">Basic BSP Dungeon generation</a>
+      </p>
+      <canvas id="canvas"></canvas>
+      <table>
+        <tr>
+          <td>Width</td>
+          <td>
+            <input min="1" value="50" type="number" id="width">
+          </td>
+        </tr>
+        <tr>
+          <td>Height</td>
+          <td>
+            <input min="1" value="50" type="number" id="height">
+          </td>
+        </tr>
+        <tr>
+          <td>Depth</td>
+          <td>
+            <input min="1" value="8" type="number" id="depth">
+          </td>
+        </tr>
+        <tr>
+          <td>Cell size</td>
+          <td>
+            <input min="10" value="10" type="number" id="cell-size">
+          </td>
+        </tr>
+        <tr>
+          <td>Room density</td>
+          <td>
+            <input min="0" max="1" step="0.01" value="0.6" type="number" id="room-density">
+          </td>
+        </tr>
+        <tr>
+          <td>Treasure density</td>
+          <td>
+            <input min="0" max="1" step="0.01" value="0.3" type="number" id="treasure-density">
+          </td>
+        </tr>
+        <tr>
+          <td>Enemy density</td>
+          <td>
+            <input min="0" max="1" step="0.01" value="0.6" type="number" id="enemy-density">
+          </td>
+        </tr>
+        <tr>
+          <td>Show bsp</td>
+          <td>
+            <input type="checkbox" id="show-bsp">
+          </td>
+        </tr>
+      </table>
+      <input type="submit" value="Generate" id="generate">
+      <script src="bsp-level.js"></script>
+      <script>
+        var dom = {
+          width: document.getElementById('width'),
+          height: document.getElementById('height'),
+          depth: document.getElementById('depth'),
+          roomDensity: document.getElementById('room-density'),
+          treasureDensity: document.getElementById('treasure-density'),
+          enemyDensity: document.getElementById('enemy-density'),
+          generate: document.getElementById('generate'),
+          canvas: document.getElementById('canvas'),
+          cellSize: document.getElementById('cell-size'),
+          showBsp: document.getElementById('show-bsp'),
+        }
+
+        function drawBoard(ctx, cellSize, board, bsps) {
+          for (var j = 0; j < board.length; j++) {
+            for (var i = 0; i < board[j].length; i++) {
+              if (board[j][i] == cell.EMPTY) continue
+              ctx.fillStyle = board[j][i]
+              ctx.fillRect(i * cellSize, j * cellSize, cellSize, cellSize)
+            }
+          }
+          var shouldDrawGrid = Object.keys(bsps).length
+          ctx.strokeStyle = '#777'
+          if (shouldDrawGrid) {
+            ctx.beginPath()
+            for (var i = 0; i < board.length; i++) {
+              ctx.moveTo(0.5, 0.5 + i * cellSize)
+              ctx.lineTo(0.5 + board[0].length * cellSize, 0.5 + i * cellSize)
+            }
+            for (var i = 0; i < board[0].length; i++) {
+              ctx.moveTo(0.5 + i * cellSize, 0.5)
+              ctx.lineTo(0.5 + i * cellSize, 0.5 + board.length * cellSize)
+            }
+            ctx.stroke()
+          }
+          ctx.strokeStyle = '#0f0'
+          ctx.lineWidth = 4
+          for (var i in bsps) {
+            var isNotLeaf = bsps[2 * i] || bsps[2 * i + 1]
+            if (isNotLeaf) continue
+            var b = bsps[i]
+            ctx.strokeRect(b[0] * cellSize, b[1] * cellSize, b[2] * cellSize, b[3] * cellSize)
+          }
+        }
+
+        dom.generate.onclick = function () {
+          var cellSize = +dom.cellSize.value
+          var w = +dom.width.value
+          var h = +dom.height.value
+          var width = w * cellSize + 20
+          var height = h * cellSize + 20
+          dom.canvas.width = width
+          dom.canvas.height = height
+          dom.canvas.style.width = width + 'px'
+          dom.canvas.style.height = height + 'px'
+          var ctx = dom.canvas.getContext('2d')
+          ctx.translate(10, 10)
+          ctx.fillRect(0, 0, width - 20, height - 20)
+          var bsps = createBspTree(w, h, +dom.depth.value)
+          var board = generateLevel(bsps, +dom.roomDensity.value, +dom.treasureDensity.value, +dom.enemyDensity.value)
+          drawBoard(ctx, cellSize, board, dom.showBsp.checked ? bsps : {})
+        }
+        dom.generate.click()
+      </script>
+  </body>
+</html>
